@@ -1,0 +1,121 @@
+-- ========================================================
+-- DECISIONIQ POWER BI DAX REFERENCE SHEET
+-- Production-grade enterprise DAX measures
+-- ========================================================
+
+-- 1. TOTAL SALES REVENUE (Successful orders only)
+NetRevenue = 
+CALCULATE(
+    SUM(orders[total_amount]),
+    FILTER(
+        orders,
+        orders[status] <> "Cancelled" && orders[status] <> "Refunded"
+    )
+)
+
+-- 2. GROSS MARGIN PERCENTAGE
+GrossMarginPct = 
+VAR TotalRevenue = [NetRevenue]
+VAR TotalProductCost = 
+    SUMX(
+        order_details,
+        order_details[quantity] * RELATED(products[unit_cost])
+    )
+VAR NetProfit = TotalRevenue - TotalProductCost
+RETURN
+    DIVIDE(NetProfit, TotalRevenue, 0)
+
+-- 3. MONTH-OVER-MONTH REVENUE GROWTH
+MoMRevenueGrowthPct = 
+VAR CurrentMonthRev = [NetRevenue]
+VAR PrevMonthRev = 
+    CALCULATE(
+        [NetRevenue],
+        DATEADD('Calendar'[Date], -1, MONTH)
+    )
+RETURN
+    DIVIDE(CurrentMonthRev - PrevMonthRev, PrevMonthRev, 0)
+
+-- 4. YEAR-OVER-YEAR REVENUE GROWTH
+YoYRevenueGrowthPct = 
+VAR CurrentMonthRev = [NetRevenue]
+VAR PrevYearRev = 
+    CALCULATE(
+        [NetRevenue],
+        SAMEPERIODLASTYEAR('Calendar'[Date])
+    )
+RETURN
+    DIVIDE(CurrentMonthRev - PrevYearRev, PrevYearRev, 0)
+
+-- 5. ROLLING 3-MONTH REVENUE AVERAGE
+Rolling3MonthRevenue = 
+AVERAGEX(
+    DATESINPERIOD(
+        'Calendar'[Date],
+        LASTDATE('Calendar'[Date]),
+        -3,
+        MONTH
+    ),
+    [NetRevenue]
+)
+
+-- 6. CUSTOMER LIFETIME VALUE (LTV)
+AverageCustomerLTV = 
+VAR TotalRevenue = [NetRevenue]
+VAR TotalUniqueCustomers = DISTINCTCOUNT(orders[customer_id])
+RETURN
+    DIVIDE(TotalRevenue, TotalUniqueCustomers, 0)
+
+-- 7. REVENUE LEAKAGE RATE
+RevenueLeakageRatePct = 
+VAR LeakedRevenue = 
+    CALCULATE(
+        SUM(orders[total_amount]),
+        FILTER(
+            orders,
+            orders[status] = "Refunded" || orders[status] = "Cancelled"
+        )
+    )
+VAR GrossRevenue = SUM(orders[total_amount])
+RETURN
+    DIVIDE(LeakedRevenue, GrossRevenue, 0)
+
+-- 8. LATE SHIPMENT RATE
+LateShipmentRatePct = 
+VAR TotalShipments = COUNT(shipments[shipment_id])
+VAR LateShipments = 
+    CALCULATE(
+        COUNT(shipments[shipment_id]),
+        shipments[delivery_status] = "Late"
+    )
+RETURN
+    DIVIDE(LateShipments, TotalShipments, 0)
+
+-- 9. NET PROMOTER SCORE (NPS)
+NPSScore = 
+VAR TotalResponses = COUNT(daily_business_metrics[nps])
+VAR Promoters = 
+    CALCULATE(
+        COUNT(daily_business_metrics[nps]),
+        daily_business_metrics[nps] >= 9
+    )
+VAR Detractors = 
+    CALCULATE(
+        COUNT(daily_business_metrics[nps]),
+        daily_business_metrics[nps] <= 6
+    )
+VAR PromoterPct = DIVIDE(Promoters, TotalResponses, 0)
+VAR DetractorPct = DIVIDE(Detractors, TotalResponses, 0)
+RETURN
+    (PromoterPct - DetractorPct) * 100
+
+-- 10. CUSTOMER CHURN RATE
+CustomerChurnRatePct = 
+VAR ChurnedCustomers = 
+    CALCULATE(
+        COUNT(customers[customer_id]),
+        customers[status] = "Churned"
+    )
+VAR TotalCustomers = COUNT(customers[customer_id])
+RETURN
+    DIVIDE(ChurnedCustomers, TotalCustomers, 0)

@@ -1,0 +1,154 @@
+/* DecisionIQ Consulting Style Design Tokens */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Typography & Layout Reset */
+html, body, [class*="css"] {
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #2D3142;
+    background-color: #F4F5F7;
+}
+
+/* Sidebar Custom Styling */
+section[data-testid="stSidebar"] {
+    background-color: #1B2A4A !important;
+    border-right: 1px solid #e0e0e0;
+}
+
+section[data-testid="stSidebar"] * {
+    color: #FFFFFF !important;
+}
+
+/* KPI Card Styling */
+.kpi-card {
+    background-color: #FFFFFF;
+    border: 1px solid #E4E7EB;
+    border-radius: 8px;
+    padding: 24px;
+    text-align: left;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background-color: #C5A059; /* Brand Accent Gold */
+}
+
+.kpi-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #7B8794;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.kpi-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1B2A4A;
+    font-family: 'Outfit', sans-serif;
+    line-height: 1.1;
+}
+
+.kpi-delta {
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 6px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.kpi-delta.positive {
+    color: #2E7D32;
+}
+
+.kpi-delta.negative {
+    color: #C62828;
+}
+
+/* Insight Card Styling */
+.insight-card {
+    background-color: #FFFFFF;
+    border: 1px solid #E4E7EB;
+    border-left: 5px solid #C62828; /* Critical Red indicator */
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+.insight-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #E4E7EB;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+}
+
+.insight-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1B2A4A;
+    font-family: 'Outfit', sans-serif;
+}
+
+.insight-tag {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background-color: #F8F9FA;
+    border: 1px solid #DDE2E5;
+}
+
+.insight-tag.critical {
+    color: #C62828;
+    background-color: #FFEBEE;
+    border: 1px solid #FFCDD2;
+}
+
+.insight-finding {
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 8px;
+    color: #4A5568;
+}
+
+/* Recommendation Card */
+.reco-card {
+    background-color: #F8F9FA;
+    border: 1px solid #E4E7EB;
+    border-radius: 6px;
+    padding: 16px;
+    margin-top: 12px;
+}
+
+.reco-action {
+    font-weight: 700;
+    color: #C5A059; /* Brand Accent Gold */
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.reco-detail {
+    font-size: 13px;
+    color: #4A5568;
+}
+
+.reco-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #2E7D32; /* System Green value capture */
+    margin-top: 6px;
+}
