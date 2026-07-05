@@ -36,6 +36,18 @@ def main():
     
     db_exists = os.path.exists(db_path)
     
+    # Check if the database has outdated scenario_metadata schema
+    if db_exists:
+        try:
+            from etl.db_connector import get_engine
+            from sqlalchemy import text
+            engine = get_engine()
+            with engine.begin() as conn:
+                conn.execute(text("SELECT active_status FROM scenario_metadata LIMIT 1"))
+        except Exception:
+            print("\nOutdated database schema detected. Forcing database reset and migration...")
+            args.force_etl = True
+            
     # 1. Run ETL
     if args.only_etl:
         print("\n--- Running ETL Pipeline & Data Warehouse Initialization ---")

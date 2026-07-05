@@ -113,7 +113,7 @@ target_sc_key = st.sidebar.selectbox(
 )
 
 # Trigger new scenario simulation
-if st.sidebar.button("🎲 Generate New Business Scenario", use_container_width=True):
+if st.sidebar.button("🎲 Generate New Business Scenario", width="stretch"):
     st.session_state.show_confirm_generate = True
 
 if st.session_state.get("show_confirm_generate", False):
@@ -132,18 +132,18 @@ if st.session_state.get("show_confirm_generate", False):
             st.rerun()
 
 # Retrain ML models button
-if st.sidebar.button("🔄 Retrain ML Models", use_container_width=True):
+if st.sidebar.button("🔄 Retrain ML Models", width="stretch"):
     with st.spinner("Retraining forecasting suite..."):
         train_all_models()
     st.sidebar.success("ML Retraining finished!")
     st.rerun()
 
 # Refresh analytics button
-if st.sidebar.button("📈 Refresh Analytics", use_container_width=True):
+if st.sidebar.button("📈 Refresh Analytics", width="stretch"):
     st.rerun()
 
 # Reload database button
-if st.sidebar.button("🗄 Reload Database", use_container_width=True):
+if st.sidebar.button("🗄 Reload Database", width="stretch"):
     with st.spinner("Reloading DB tables..."):
         run_etl_pipeline()
     st.sidebar.success("DB reload complete!")
@@ -175,7 +175,7 @@ st.sidebar.download_button(
     data=report_text,
     file_name=f"DecisionIQ_Report_{active_scenario_id}.md",
     mime="text/markdown",
-    use_container_width=True
+    width="stretch"
 )
 
 # Verification Monitor Badge

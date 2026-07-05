@@ -85,9 +85,21 @@ class ScenarioManager:
         next_num = len(history) + 1
         scenario_id = f"SCN-{next_num:05d}"
         
-        # Override scenario in environment variable for the generator
-        os.environ["SIMULATION_SCENARIO"] = scenario_key
-        
+        # Check if the database has outdated scenario_metadata schema
+        if ScenarioManager.db_exists():
+            from sqlalchemy import text
+            engine = get_engine()
+            try:
+                with engine.begin() as conn:
+                    conn.execute(text("SELECT active_status FROM scenario_metadata LIMIT 1"))
+            except Exception:
+                logger.warning("Detected outdated scenario_metadata table. Dropping it for migration.")
+                try:
+                    with engine.begin() as conn:
+                        conn.execute(text("DROP TABLE IF EXISTS scenario_metadata"))
+                except Exception as drop_err:
+                    logger.error(f"Failed to drop outdated scenario_metadata table: {drop_err}")
+                    
         logger.info(f"Generating new scenario {scenario_id}: {name} ({scenario_key})...")
         
         # Trigger ETL pipeline (which runs init_db to reset tables but preserves scenario_metadata)
