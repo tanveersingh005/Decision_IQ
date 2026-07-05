@@ -794,6 +794,182 @@ class ExecutiveInsightBuilder:
                 recommendations=recs
             ))
             
+        # ----------------------------------------------------
+        # Scenario 5: Regional Sales Collapse
+        # ----------------------------------------------------
+        elif active_scenario == "REGIONAL_SALES_COLLAPSE":
+            title = "Europe Regional Sales Drop & Margin Decline"
+            findings = [
+                "Sales audits indicate that order volumes in the European region (REG02) collapsed by 60% compared to baseline targets.",
+                "This sudden decline is linked to competitive market pricing adjustments and regional economic friction.",
+                "The sales reduction has severely impacted overall target sales margins, representing a revenue gap of approximately $185,000."
+            ]
+            insights.append(ExecutiveInsight(
+                id="INS_REG_COLLAPSE",
+                title=title,
+                category="Sales & Regional",
+                metric_impacted="Regional Net Sales",
+                impact_value=f"${leakage:,.2f} Gap",
+                confidence_score=conf_str,
+                severity=severity,
+                findings=findings,
+                recommendations=recs
+            ))
+            
+        # ----------------------------------------------------
+        # Scenario 6: Cash Flow Crisis
+        # ----------------------------------------------------
+        elif active_scenario == "CASH_FLOW_CRISIS":
+            title = "Payment Process Lags & Gateway Failures Affecting Cash Flow"
+            findings = [
+                "Financial transaction logs indicate Credit Card and ACH payment failure rates surged to 20% this month.",
+                "High payment void rates have delayed order fulfillments, resulting in a spike in support inquiries and cancellations.",
+                "The processing failures have deferred cash receipts and increased payment gateway retry overheads, impacting immediate cash reserves."
+            ]
+            insights.append(ExecutiveInsight(
+                id="INS_CASH_FLOW",
+                title=title,
+                category="Finance & Billing",
+                metric_impacted="Transaction Success Rate & Cash flow",
+                impact_value=f"${leakage:,.2f} Delayed",
+                confidence_score=conf_str,
+                severity=severity,
+                findings=findings,
+                recommendations=recs
+            ))
+            
+        # ----------------------------------------------------
+        # Scenario 7: Demand Spike
+        # ----------------------------------------------------
+        elif active_scenario == "DEMAND_SPIKE":
+            title = "SaaS Cloud Infrastructure Demand Spike Straining Service Teams"
+            findings = [
+                "Sales records show a 2.2x surge in Cloud Infrastructure Suite orders over the last 60 days.",
+                "While positive for top-line revenue, the volume has created a delivery backlog in implementation and consulting teams.",
+                "Project delivery times have slipped by 11 days, triggering customer support escalations."
+            ]
+            insights.append(ExecutiveInsight(
+                id="INS_DEMAND_SPIKE",
+                title=title,
+                category="Operations & Sales",
+                metric_impacted="Order Bookings & Delivery Capacity",
+                impact_value="Demand Surplus",
+                confidence_score=conf_str,
+                severity=severity,
+                findings=findings,
+                recommendations=recs
+            ))
+
+        # ----------------------------------------------------
+        # Scenario 8: Supplier Reliability Crisis
+        # ----------------------------------------------------
+        elif active_scenario == "SUPPLIER_RELIABILITY_CRISIS":
+            title = "Widespread Supplier SLA Violations Slowing Hardware Production"
+            findings = [
+                "Logistics dashboards reveal lead-time delays of 8 days across key hardware component providers.",
+                "Deteriorated supplier scores have created parts shortages at several assembly hubs, slowing server production lines.",
+                "Fulfillment pipelines are backlogged, impacting hardware shipments in North America and EMEA."
+            ]
+            insights.append(ExecutiveInsight(
+                id="INS_SUPPLIER_CRISIS",
+                title=title,
+                category="Operations & Supply Chain",
+                metric_impacted="Supplier Lead Time SLA",
+                impact_value="Supply Chain Delays",
+                confidence_score=conf_str,
+                severity=severity,
+                findings=findings,
+                recommendations=recs
+            ))
+
+        # ----------------------------------------------------
+        # Scenario 9: Support Backlog
+        # ----------------------------------------------------
+        elif active_scenario == "SUPPORT_BACKLOG":
+            title = "Support Ticket Queue Backlog Spiking Lags & Dropping CSAT"
+            findings = [
+                "Customer support billing and technical categories have seen ticket volume double, creating a backlog.",
+                "Average queue wait times have increased 4-fold, and overall customer satisfaction (CSAT) ratings crashed below 2.0.",
+                "The support backlog has led to elevated account cancellations and brand friction."
+            ]
+            insights.append(ExecutiveInsight(
+                id="INS_SUPPORT_BACKLOG",
+                title=title,
+                category="Customer Success",
+                metric_impacted="Customer Support CSAT",
+                impact_value="Support Desk Backlog",
+                confidence_score=conf_str,
+                severity=severity,
+                findings=findings,
+                recommendations=recs
+            ))
+
+        # ----------------------------------------------------
+        # Scenario 10: Product Recall
+        # ----------------------------------------------------
+        elif active_scenario == "PRODUCT_RECALL":
+            title = "Hardware Recall on Network Switch Lines Driving Refunds"
+            findings = [
+                "A hardware defect detected in Network Switch 24p (PROD005) shipments forced a product recall in North America.",
+                "Refunds were processed for all affected orders, leading to direct margin losses.",
+                "Sales team resources are diverted to manage swap logistics, impacting active product pipelines."
+            ]
+            insights.append(ExecutiveInsight(
+                id="INS_PRODUCT_RECALL",
+                title=title,
+                category="Finance & Product Quality",
+                metric_impacted="Product Quality & Refunds",
+                impact_value="Product Recall Loss",
+                confidence_score=conf_str,
+                severity=severity,
+                findings=findings,
+                recommendations=recs
+            ))
+
+        # ----------------------------------------------------
+        # Scenario 11: Warehouse Congestion
+        # ----------------------------------------------------
+        elif active_scenario == "WAREHOUSE_CONGESTION":
+            title = "Depot Capacity Congestion at EMEA Central Warehouse"
+            findings = [
+                "Fulfillment metrics indicate EMEA Central Depot (WH003) has exceeded 90% square-foot capacity.",
+                "Fulfillment picking and staging bottlenecks have delayed shipping carrier dispatches by 5 days.",
+                "Late shipments in Europe have spiked, leading to CSAT declines."
+            ]
+            insights.append(ExecutiveInsight(
+                id="INS_WH_CONGESTION",
+                title=title,
+                category="Operations & Logistics",
+                metric_impacted="Warehouse Fulfillment Speed",
+                impact_value="Depot Lags",
+                confidence_score=conf_str,
+                severity=severity,
+                findings=findings,
+                recommendations=recs
+            ))
+
+        # ----------------------------------------------------
+        # Scenario 12: Seasonal Holiday Demand
+        # ----------------------------------------------------
+        elif active_scenario == "SEASONAL_HOLIDAY_DEMAND":
+            title = "Holiday Peak Orders Bottlenecking Shipping Carriers"
+            findings = [
+                "Seasonal Q4 sales volume surge has bottlenecked shipping carriers (FedEx, UPS).",
+                "Fulfillment hubs are operating at capacity, but carrier dispatch queues have delayed deliveries.",
+                "Customer queries regarding logistics status have spiked, straining the support team."
+            ]
+            insights.append(ExecutiveInsight(
+                id="INS_HOLIDAY_DEMAND",
+                title=title,
+                category="Operations & Logistics",
+                metric_impacted="Fulfillment Carrier SLAs",
+                impact_value="Carrier Congestion",
+                confidence_score=conf_str,
+                severity=severity,
+                findings=findings,
+                recommendations=recs
+            ))
+            
         # Check for other standalone anomalies if we want to list them
         # Sorting insights by severity: Critical -> High -> Medium -> Low
         severity_map = {"Critical": 4, "High": 3, "Medium": 2, "Low": 1}

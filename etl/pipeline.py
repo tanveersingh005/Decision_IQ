@@ -160,8 +160,7 @@ def run_etl_pipeline():
         ("payments", dfs["payments"]),
         ("shipments", dfs["shipments"]),
         ("customer_support", dfs["customer_support"]),
-        ("daily_business_metrics", dfs["daily_business_metrics"]),
-        ("scenario_metadata", dfs["scenario_metadata"])
+        ("daily_business_metrics", dfs["daily_business_metrics"])
     ]
     
     with engine.begin() as connection:

@@ -51,9 +51,8 @@ if not db_initialized:
     st.warning("⚠️ Data Warehouse not initialized. Click below to generate synthetic data, run ETL pipeline, and train Machine Learning models.")
     if st.button("🚀 Initialize Enterprise Data Platform", type="primary"):
         with st.spinner("Executing Data Generation & ETL pipeline..."):
-            run_etl_pipeline()
-        with st.spinner("Training Machine Learning Suite..."):
-            train_all_models()
+            from etl.scenario_manager import ScenarioManager
+            ScenarioManager.generate_new_scenario()
         st.success("Platform initialized successfully! Refreshing dashboard...")
         st.rerun()
     st.stop()
@@ -61,34 +60,29 @@ if not db_initialized:
 # Helper for Database Engine
 engine = get_engine()
 
-# Fetch active insights to identify the active scenario and prioritize page index
+# Load active scenario metadata
+from etl.scenario_manager import ScenarioManager
+active_sc = ScenarioManager.get_active_scenario()
+
+active_scenario_id = active_sc.get("scenario_id", "SCN-00000")
+active_scenario_name = active_sc.get("scenario_name", "System Baseline Operations")
+active_scenario_type = active_sc.get("scenario_type", "UNKNOWN_SCENARIO")
+active_scenario_desc = active_sc.get("scenario_description", "No active anomalies detected; baseline performance is within bounds.")
+active_scenario_time = active_sc.get("generated_timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+active_scenario = active_scenario_type
+
 try:
     insights = InsightEngine.generate_executive_insights()
 except Exception as e:
     insights = []
-    
-active_scenario = "UNKNOWN_SCENARIO"
-simulated_scenario = "Unknown"
-if insights:
-    first_ins = insights[0]
-    simulated_scenario = first_ins.get("simulated_scenario", "Unknown")
-    ins_id = first_ins.get("id", "")
-    
-    if ins_id == "INS_SUPPLY_CHAIN":
-        active_scenario = "SUPPLY_CHAIN_CRISIS"
-    elif ins_id == "INS_MARKETING":
-        active_scenario = "MARKETING_INEFFICIENCY"
-    elif ins_id == "INS_CHURN":
-        active_scenario = "CUSTOMER_CHURN_SURGE"
-    elif ins_id == "INS_OVERSTOCK":
-        active_scenario = "INVENTORY_OVERSTOCK"
 
 # Initialize default page in session state based on active scenario on first load
 if "navigation_page" not in st.session_state:
     default_page = "CEO Control Tower"
-    if active_scenario in ["SUPPLY_CHAIN_CRISIS", "INVENTORY_OVERSTOCK"]:
+    if active_scenario in ["SUPPLY_CHAIN_CRISIS", "INVENTORY_OVERSTOCK", "WAREHOUSE_CONGESTION", "SUPPLIER_RELIABILITY_CRISIS", "SEASONAL_HOLIDAY_DEMAND", "PRODUCT_RECALL"]:
         default_page = "Operations & Supply Chain"
-    elif active_scenario == "CUSTOMER_CHURN_SURGE":
+    elif active_scenario in ["CUSTOMER_CHURN_SURGE", "SUPPORT_BACKLOG"]:
         default_page = "Customer Success & Cohorts"
     elif active_scenario == "MARKETING_INEFFICIENCY":
         default_page = "Marketing & Support"
@@ -108,14 +102,90 @@ st.sidebar.markdown("<p style='color:#7B8794; font-size: 11px; font-weight: 600;
 region_filter = st.sidebar.selectbox("Region", ["All Regions", "North America", "Europe", "Asia-Pacific"])
 segment_filter = st.sidebar.selectbox("Customer Segment", ["All Segments", "SMB", "Enterprise", "Strategic"])
 
+# Executive Controls Section
+st.sidebar.markdown("---")
+st.sidebar.markdown("<p style='color:#7B8794; font-size: 11px; font-weight: 600; text-transform: uppercase;'>Executive Controls</p>", unsafe_allow_html=True)
+
+# Select target scenario for simulation
+target_sc_key = st.sidebar.selectbox(
+    "Target Scenario Type",
+    list(ScenarioManager.SCENARIO_TYPES.keys())
+)
+
+# Trigger new scenario simulation
+if st.sidebar.button("🎲 Generate New Business Scenario", use_container_width=True):
+    st.session_state.show_confirm_generate = True
+
+if st.session_state.get("show_confirm_generate", False):
+    st.sidebar.warning("⚠️ Proceeding will reset tables and retrain models.")
+    col_y, col_n = st.sidebar.columns(2)
+    with col_y:
+        if st.button("Confirm", type="primary", key="sc_confirm_yes"):
+            st.session_state.show_confirm_generate = False
+            with st.spinner("Generating scenario data..."):
+                ScenarioManager.generate_new_scenario(target_sc_key)
+            st.success("Scenario created!")
+            st.rerun()
+    with col_n:
+        if st.button("Cancel", key="sc_confirm_no"):
+            st.session_state.show_confirm_generate = False
+            st.rerun()
+
+# Retrain ML models button
+if st.sidebar.button("🔄 Retrain ML Models", use_container_width=True):
+    with st.spinner("Retraining forecasting suite..."):
+        train_all_models()
+    st.sidebar.success("ML Retraining finished!")
+    st.rerun()
+
+# Refresh analytics button
+if st.sidebar.button("📈 Refresh Analytics", use_container_width=True):
+    st.rerun()
+
+# Reload database button
+if st.sidebar.button("🗄 Reload Database", use_container_width=True):
+    with st.spinner("Reloading DB tables..."):
+        run_etl_pipeline()
+    st.sidebar.success("DB reload complete!")
+    st.rerun()
+
+# Build report text for download
+report_text = f"# DecisionIQ Executive Operational Diagnostic Report\n"
+report_text += f"Exported: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+report_text += f"Scenario: {active_scenario_name} ({active_scenario_id})\n"
+report_text += f"Type: {active_scenario_type}\n"
+report_text += f"Description: {active_scenario_desc}\n\n"
+report_text += "## Active Diagnostic Insights\n\n"
+for ins in insights:
+    report_text += f"### [{ins['severity']}] {ins['title']}\n"
+    report_text += f"Impacted Metric: {ins['metric_impacted']} | Value: {ins['impact_value']}\n\n"
+    report_text += "#### Key Findings:\n"
+    for f in ins['findings']:
+        report_text += f"- {f}\n"
+    report_text += "\n#### Strategic Recommendations:\n"
+    for r in ins['recommendations']:
+        report_text += f"- **Action:** {r['action']}\n"
+        report_text += f"  - *Detail:* {r['detail']}\n"
+        report_text += f"  - *Benefit:* {r['benefit']}\n"
+        report_text += f"  - *Value:* {r['value']}\n"
+    report_text += "\n" + "-"*50 + "\n\n"
+
+st.sidebar.download_button(
+    label="📊 Export Executive Report",
+    data=report_text,
+    file_name=f"DecisionIQ_Report_{active_scenario_id}.md",
+    mime="text/markdown",
+    use_container_width=True
+)
+
 # Verification Monitor Badge
-if simulated_scenario != "Unknown":
+if active_scenario_id != "SCN-00000":
     st.sidebar.markdown("---")
     st.sidebar.markdown("<p style='color:#7B8794; font-size: 11px; font-weight: 600; text-transform: uppercase;'>Verification Monitor</p>", unsafe_allow_html=True)
     st.sidebar.markdown(f"<div style='background-color:#1B2A4A; padding:10px; border-radius:5px; border: 1px solid #C5A059;'>"
-                        f"<p style='color:#C5A059; font-size:10px; font-weight:bold; margin:0; text-transform:uppercase;'>System Diagnostics</p>"
-                        f"<p style='color:#F4F5F7; font-size:11px; margin:5px 0 0 0;'><b>Simulated:</b> {simulated_scenario.replace('_', ' ')}</p>"
-                        f"<p style='color:#F4F5F7; font-size:11px; margin:2px 0 0 0;'><b>Detected:</b> {active_scenario.replace('_', ' ')}</p>"
+                        f"<p style='color:#C5A059; font-size:10px; font-weight:bold; margin:0; text-transform:uppercase;'>System Status</p>"
+                        f"<p style='color:#F4F5F7; font-size:11px; margin:5px 0 0 0;'><b>Scenario ID:</b> {active_scenario_id}</p>"
+                        f"<p style='color:#F4F5F7; font-size:11px; margin:2px 0 0 0;'><b>Active Type:</b> {active_scenario_type}</p>"
                         f"</div>", unsafe_allow_html=True)
 
 # KPI Delta helper
@@ -142,6 +212,21 @@ def render_kpi(title, value, delta=None, delta_type="positive"):
 if page == "CEO Control Tower":
     st.markdown("<h2 style='font-family: Outfit; font-weight: 700; color: #1B2A4A;'>CEO Control Tower Dashboard</h2>", unsafe_allow_html=True)
     st.markdown("<p style='color: #7B8794; margin-top:-10px; font-size: 14px;'>Enterprise Health, Performance Forecasts, and Root-Cause Diagnostics</p>", unsafe_allow_html=True)
+    
+    # Scenario Info Card Banner
+    st.markdown(
+        f"<div style='background-color: #1B2A4A; border-left: 5px solid #C5A059; padding: 15px; border-radius: 4px; margin-bottom: 25px;'>"
+        f"  <p style='color: #7B8794; font-size: 10px; text-transform: uppercase; font-weight: bold; margin: 0; letter-spacing: 0.1em;'>Current Business Scenario</p>"
+        f"  <h3 style='color: #F4F5F7; font-family: Outfit; font-weight: 700; margin: 5px 0 0 0; font-size: 20px;'>{active_scenario_name}</h3>"
+        f"  <p style='color: #E4E7EB; font-size: 13px; margin: 5px 0 10px 0;'>{active_scenario_desc}</p>"
+        f"  <div style='display: flex; gap: 20px; font-size: 11px; color: #7B8794;'>"
+        f"    <span><b>Scenario ID:</b> {active_scenario_id}</span>"
+        f"    <span><b>Type:</b> {active_scenario_type}</span>"
+        f"    <span><b>Generated On:</b> {active_scenario_time}</span>"
+        f"  </div>"
+        f"</div>",
+        unsafe_allow_html=True
+    )
     
     kpis = get_executive_kpis()
     

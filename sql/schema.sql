@@ -2,7 +2,6 @@
 -- Compatible with PostgreSQL and SQLite
 
 -- DROP EXISTING TABLES (Reverse Dependency Order)
-DROP TABLE IF EXISTS scenario_metadata;
 DROP TABLE IF EXISTS daily_business_metrics;
 DROP TABLE IF EXISTS customer_support;
 DROP TABLE IF EXISTS shipments;
@@ -204,5 +203,13 @@ CREATE INDEX IF NOT EXISTS idx_inventory_warehouse_product ON inventory(warehous
 
 -- 15. SCENARIO_METADATA
 CREATE TABLE IF NOT EXISTS scenario_metadata (
-    scenario_key VARCHAR(100) PRIMARY KEY
+    scenario_id VARCHAR(50) PRIMARY KEY,
+    scenario_name VARCHAR(150) NOT NULL,
+    scenario_type VARCHAR(100) NOT NULL,
+    generated_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    seed_value INTEGER NOT NULL,
+    scenario_description TEXT,
+    active_status VARCHAR(20) DEFAULT 'Active',
+    generator_version VARCHAR(20) DEFAULT '1.0.0',
+    ml_version VARCHAR(20) DEFAULT '1.0.0'
 );

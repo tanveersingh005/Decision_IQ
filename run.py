@@ -19,34 +19,48 @@ def main():
     parser.add_argument("--only-etl", action="store_true", help="Only run raw data generation and ETL pipeline")
     parser.add_argument("--only-ml", action="store_true", help="Only train machine learning models")
     parser.add_argument("--only-app", action="store_true", help="Only launch Streamlit dashboard app")
+    parser.add_argument("--force-etl", action="store_true", help="Force rebuild of database and ML retraining")
     
     args = parser.parse_args()
     
-    # If no flags are passed, run everything (ETL -> ML -> App)
-    run_all = not (args.only_etl or args.only_ml or args.only_app)
-    
     # Setup paths
     base_dir = os.path.abspath(os.path.dirname(__file__))
+    sys.path.append(base_dir)
+    
     pipeline_path = os.path.join(base_dir, "etl", "pipeline.py")
     ml_path = os.path.join(base_dir, "ml", "train.py")
     app_path = os.path.join(base_dir, "python", "app.py")
+    db_path = os.path.join(base_dir, "decision_iq.db")
+    
+    run_all = not (args.only_etl or args.only_ml or args.only_app)
+    
+    db_exists = os.path.exists(db_path)
     
     # 1. Run ETL
-    if run_all or args.only_etl:
+    if args.only_etl:
         print("\n--- Running ETL Pipeline & Data Warehouse Initialization ---")
         run_cmd([sys.executable, pipeline_path])
+    elif run_all and (not db_exists or args.force_etl):
+        print("\n--- Initializing Enterprise Data Warehouse & Active Scenario ---")
+        # Import and trigger via ScenarioManager to ensure active scenario is stored
+        from etl.scenario_manager import ScenarioManager
+        ScenarioManager.generate_new_scenario()
+    elif run_all and db_exists:
+        print("\nDatabase exists. Skipping data generation and ETL pipeline.")
         
     # 2. Run ML Training
-    if run_all or args.only_ml:
+    if args.only_ml:
         print("\n--- Training Predictive & Forecasting ML Suite ---")
         run_cmd([sys.executable, ml_path])
+    elif run_all and (not db_exists or args.force_etl):
+        # Already handled by ScenarioManager.generate_new_scenario() above
+        pass
+    elif run_all and db_exists:
+        print("Database exists. Skipping ML models retraining.")
         
     # 3. Launch App
     if run_all or args.only_app:
         print("\n--- Launching Streamlit Executive Dashboard ---")
-        # Start Streamlit application
-        # Use the current Python interpreter so this works even if the
-        # streamlit executable is not available on PATH.
         try:
             subprocess.run([sys.executable, "-m", "streamlit", "run", app_path], check=True)
         except KeyboardInterrupt:
