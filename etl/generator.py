@@ -386,8 +386,8 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
                 ship_dt = dt + timedelta(days=np.random.randint(1, 3))
                 est_delivery = ship_dt + timedelta(days=np.random.randint(3, 7))
                 
-                # Default delay
-                delay_days = np.random.randint(0, 3)
+                # Default delay: mostly 0-2 days, but 5% have 3-4 days (baseline late)
+                delay_days = int(np.random.choice([0, 1, 2, 3, 4], p=[0.75, 0.12, 0.08, 0.04, 0.01]))
                 
                 # Inject SUPPLY_CHAIN_CRISIS: delay for WH002 & SUP001
                 if is_crisis_active and selected_scenario == "SUPPLY_CHAIN_CRISIS":
