@@ -2,6 +2,7 @@
 -- Compatible with PostgreSQL and SQLite
 
 -- DROP EXISTING TABLES (Reverse Dependency Order)
+DROP TABLE IF EXISTS scenario_metadata;
 DROP TABLE IF EXISTS daily_business_metrics;
 DROP TABLE IF EXISTS customer_support;
 DROP TABLE IF EXISTS shipments;
@@ -200,3 +201,8 @@ CREATE INDEX IF NOT EXISTS idx_shipments_order_id ON shipments(order_id);
 CREATE INDEX IF NOT EXISTS idx_shipments_actual_delivery ON shipments(actual_delivery_date);
 CREATE INDEX IF NOT EXISTS idx_customer_support_customer ON customer_support(customer_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_warehouse_product ON inventory(warehouse_id, product_id);
+
+-- 15. SCENARIO_METADATA
+CREATE TABLE IF NOT EXISTS scenario_metadata (
+    scenario_key VARCHAR(100) PRIMARY KEY
+);

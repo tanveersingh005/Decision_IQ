@@ -2,6 +2,10 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 import uuid
+import logging
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger("DataGenerator")
 
 # Set random seed for reproducibility
 np.random.seed(42)
@@ -9,12 +13,20 @@ np.random.seed(42)
 def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-30"):
     """
     Generates realistic enterprise dataset.
-    Returns a dictionary of pandas DataFrames representing each table.
+    Randomly selects one of four business scenarios to inject during the final 6 months.
     """
     start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
     end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
     total_days = (end_date - start_date).days + 1
     date_list = [start_date + timedelta(days=x) for x in range(total_days)]
+    
+    # 6-Month Crisis Period: Jan 1, 2026 to June 30, 2026
+    crisis_start = datetime(2026, 1, 1).date()
+    
+    # Randomly select a scenario to simulate
+    scenarios = ["SUPPLY_CHAIN_CRISIS", "MARKETING_INEFFICIENCY", "CUSTOMER_CHURN_SURGE", "INVENTORY_OVERSTOCK"]
+    selected_scenario = np.random.choice(scenarios)
+    logger.info(f"Selected Simulation Scenario: {selected_scenario}")
     
     # ----------------------------------------------------
     # 1. REGIONS
@@ -84,6 +96,13 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
         {"warehouse_id": "WH003", "warehouse_name": "EMEA Central Depot", "location": "Frankfurt, Germany", "region_id": "REG02", "capacity_sqft": 120000, "operating_cost_monthly": 15000.00},
         {"warehouse_id": "WH004", "warehouse_name": "APAC Logistics Hub", "location": "Singapore", "region_id": "REG03", "capacity_sqft": 100000, "operating_cost_monthly": 22000.00}
     ]
+    
+    # Inject INVENTORY_OVERSTOCK: Increase monthly operating cost by 50% for WH001 and WH002
+    if selected_scenario == "INVENTORY_OVERSTOCK":
+        for w in warehouses_data:
+            if w["warehouse_id"] in ["WH001", "WH002"]:
+                w["operating_cost_monthly"] = float(round(w["operating_cost_monthly"] * 1.5, 2))
+                
     warehouses_df = pd.DataFrame(warehouses_data)
     
     # ----------------------------------------------------
@@ -95,6 +114,11 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
         {"supplier_id": "SUP003", "supplier_name": "Silicon Manufacturing Ltd", "contact_name": "Cynthia Lau", "email": "c.lau@siliconmfg.com", "lead_time_days": 12, "reliability_score": 0.92},
         {"supplier_id": "SUP004", "supplier_name": "EuroChip AG", "contact_name": "Dieter Brandt", "email": "d.brandt@eurochip.de", "lead_time_days": 14, "reliability_score": 0.90}
     ]
+    
+    # Inject SUPPLY_CHAIN_CRISIS: Apex reliability score drops to 0.72
+    if selected_scenario == "SUPPLY_CHAIN_CRISIS":
+        suppliers_data[0]["reliability_score"] = 0.72
+        
     suppliers_df = pd.DataFrame(suppliers_data)
     
     # ----------------------------------------------------
@@ -104,13 +128,17 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
     inv_id_counter = 1
     for _, wh in warehouses_df.iterrows():
         for _, prod in products_df.iterrows():
-            # Support and Professional services don't have physical inventory
             if prod["category"] in ["Software", "Hardware"]:
+                qty = int(np.random.randint(50, 500))
+                # Inject INVENTORY_OVERSTOCK: Warehouse WH001/WH002 quantity on hand increases 3x
+                if selected_scenario == "INVENTORY_OVERSTOCK" and wh["warehouse_id"] in ["WH001", "WH002"]:
+                    qty = int(qty * 3.5)
+                    
                 inventory_data.append({
                     "inventory_id": f"INV{inv_id_counter:04d}",
                     "warehouse_id": wh["warehouse_id"],
                     "product_id": prod["product_id"],
-                    "quantity_on_hand": int(np.random.randint(50, 500)),
+                    "quantity_on_hand": qty,
                     "reorder_point": int(np.random.choice([30, 50, 75])),
                     "last_stock_count_date": end_date - timedelta(days=np.random.randint(1, 10))
                 })
@@ -132,10 +160,19 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
         camp_start = start_date + timedelta(days=np.random.randint(0, 365))
         camp_end = camp_start + timedelta(days=np.random.randint(30, 90))
         budget = float(np.random.choice([15000, 25000, 50000, 75000]))
+        
+        # Inject MARKETING_INEFFICIENCY: Double the budget for PPC & Social Media
+        if selected_scenario == "MARKETING_INEFFICIENCY" and channel in ["Social Media", "PPC"]:
+            budget = float(budget * 3.0)
+            
         impressions = int(budget * np.random.uniform(5, 10))
         clicks = int(impressions * np.random.uniform(0.015, 0.04))
-        # conversions
+        
         conversions = int(clicks * np.random.uniform(0.02, 0.06))
+        # Inject MARKETING_INEFFICIENCY: Drop conversions by 80%
+        if selected_scenario == "MARKETING_INEFFICIENCY" and channel in ["Social Media", "PPC"]:
+            conversions = int(conversions * 0.15)
+            
         campaigns_data.append({
             "campaign_id": f"CAMP{i+1:03d}",
             "campaign_name": name,
@@ -154,7 +191,6 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
     # ----------------------------------------------------
     segments = ["SMB", "Enterprise", "Strategic"]
     channels = ["Direct", "Referral", "Organic Search", "Paid Ads"]
-    statuses = ["Active", "Active", "Active", "At-Risk", "Churned"]
     
     customers_data = []
     customer_companies = [
@@ -167,10 +203,8 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
         "Kramerica Industries", "Prestige Worldwide", "Entertainment 720", "Gryzzl", "Pawnee Parks"
     ]
     
-    # Generate 500 customers
-    cust_id_counter = 1
     for i in range(500):
-        comp_name = f"{np.random.choice(customer_companies)} {np.random.choice(['Inc.', 'LLC', 'Corp', 'Group', 'Solutions'])} {cust_id_counter}"
+        comp_name = f"{np.random.choice(customer_companies)} {np.random.choice(['Inc.', 'LLC', 'Corp', 'Group', 'Solutions'])} {i+1}"
         cont_name = f"{np.random.choice(['Alex', 'Jamie', 'Morgan', 'Taylor', 'Jordan', 'Pat', 'Chris', 'Sam'])} {np.random.choice(['Miller', 'Davis', 'Wilson', 'Anderson', 'Thomas', 'Jackson', 'White'])}"
         domain = comp_name.lower().replace(" ", "").replace(".", "").replace(",", "")[:12] + ".com"
         email = f"{cont_name.lower().replace(' ', '.')}@{domain}"
@@ -178,13 +212,19 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
         region = np.random.choice(["REG01", "REG02", "REG03"], p=[0.50, 0.30, 0.20])
         seg = np.random.choice(segments, p=[0.40, 0.45, 0.15])
         
-        # Determine status. We will simulate churn risk based on CSAT later
-        status = np.random.choice(statuses, p=[0.70, 0.10, 0.10, 0.05, 0.05])
-        acq_date = start_date + timedelta(days=np.random.randint(0, total_days - 100))
+        # Default Status
+        status = "Active"
+        acq_date = start_date + timedelta(days=np.random.randint(0, total_days - 250))
         acq_chan = np.random.choice(channels)
         
+        # Inject CUSTOMER_CHURN_SURGE: set SMB segment customers in Europe (REG02) to Churned at higher rate
+        if selected_scenario == "CUSTOMER_CHURN_SURGE" and seg == "SMB" and region == "REG02" and np.random.rand() > 0.4:
+            status = np.random.choice(["Churned", "At-Risk"], p=[0.70, 0.30])
+        elif np.random.rand() > 0.94:
+            status = np.random.choice(["Churned", "At-Risk"], p=[0.50, 0.50])
+            
         customers_data.append({
-            "customer_id": f"CUST{cust_id_counter:05d}",
+            "customer_id": f"CUST{i+1:05d}",
             "company_name": comp_name,
             "contact_name": cont_name,
             "contact_email": email,
@@ -194,12 +234,11 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
             "acquisition_date": acq_date,
             "acquisition_channel": acq_chan
         })
-        cust_id_counter += 1
         
-    # Duplicate email entries to test data validation & cleaning in the ETL pipeline
+    # Duplicate entries
+    cust_id_counter = 501
     for i in range(5):
         dup = customers_data[np.random.randint(0, 100)].copy()
-        # Change customer id and name to represent a duplicate record (same email, different name/id)
         dup["customer_id"] = f"CUST{cust_id_counter:05d}"
         dup["company_name"] = dup["company_name"] + " (Duplicate Entry)"
         dup["acquisition_date"] = dup["acquisition_date"] + timedelta(days=1)
@@ -221,71 +260,65 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
     payment_id_counter = 1
     shipment_id_counter = 1
     
-    # Active customers can place orders
     active_custs = customers_df[~customers_df["status"].isin(["Churned"])]
     
-    # Distribution of orders across days
-    # Baseline orders per day, plus trend (growth over time) and seasonal components (Q4 spike)
     for dt in date_list:
-        # Business growth multiplier (starts at 1.0, grows to 1.6 by year 3)
         day_index = (dt - start_date).days
         growth_mult = 1.0 + (day_index / total_days) * 0.6
         
-        # Monthly Seasonality multiplier
         month = dt.month
-        if month in [11, 12]:  # Q4 Peak
-            season_mult = 1.35
-        elif month in [1, 2]:   # Q1 Dip
-            season_mult = 0.75
-        else:
-            season_mult = 1.00
-            
-        # The Q2 2025 systemic issue starts here:
-        # April 1, 2025 to June 30, 2025 (day 640 to 730 approx)
-        is_q2_2025_issue = (dt >= datetime(2025, 4, 1).date() and dt <= datetime(2025, 6, 30).date())
+        season_mult = 1.35 if month in [11, 12] else 0.75 if month in [1, 2] else 1.00
         
-        # Determine number of orders for the day
+        is_crisis_active = (dt >= crisis_start)
+        
+        # Base daily order count
         base_orders = int(np.random.poisson(12 * growth_mult * season_mult))
         
-        # If Q2 2025 issue, decrease base orders in NA West region by 15% due to bottlenecking
-        if is_q2_2025_issue:
-            base_orders = int(base_orders * 0.90) # overall order dip
-            
+        # Scenario adjustments to order volume:
+        if is_crisis_active:
+            if selected_scenario == "SUPPLY_CHAIN_CRISIS":
+                base_orders = int(base_orders * 0.85) # Sales drop due to inventory delay refusals
+            elif selected_scenario == "INVENTORY_OVERSTOCK":
+                base_orders = int(base_orders * 0.75) # Sales drops overall for hardware
+                
         for _ in range(base_orders):
-            # Select random customer
             cust = active_custs.sample(1).iloc[0]
             cust_id = cust["customer_id"]
             cust_region = cust["region_id"]
             
-            # Select order rep (employee) in customer region
             reps = employees_df[(employees_df["region_id"] == cust_region) & (employees_df["role"] == "Sales Representative")]
             rep_id = reps.sample(1).iloc[0]["employee_id"] if len(reps) > 0 else "EMP008"
             
-            # Determine order status: baseline
             status_opts = ["Completed", "Shipped", "Processing", "Cancelled", "Refunded"]
             status_p = [0.85, 0.08, 0.03, 0.02, 0.02]
             
-            # Q2 2025 issue: spike in cancellations and refunds in NA region (REG01)
-            if is_q2_2025_issue and cust_region == "REG01":
-                status_p = [0.55, 0.10, 0.05, 0.12, 0.18] # Significant leakage in NA (high refunds/cancels)
+            # Scenario: Supply Chain Crisis refund spikes in NA (REG01)
+            if is_crisis_active and selected_scenario == "SUPPLY_CHAIN_CRISIS" and cust_region == "REG01":
+                status_p = [0.55, 0.10, 0.05, 0.12, 0.18]
                 
             order_status = np.random.choice(status_opts, p=status_p)
             
-            # Generate items in order (1 to 3 products)
+            # Items in order
             num_items = np.random.choice([1, 2, 3], p=[0.70, 0.22, 0.08])
-            sampled_prods = products_df.sample(num_items)
             
+            # Scenario: Inventory Overstock has lower hardware item purchases
+            if is_crisis_active and selected_scenario == "INVENTORY_OVERSTOCK":
+                # Filter down to software categories mostly
+                sampled_prods = products_df[products_df["category"] == "Software"].sample(min(num_items, 3))
+                if len(sampled_prods) == 0:
+                    sampled_prods = products_df.sample(num_items)
+            else:
+                sampled_prods = products_df.sample(num_items)
+                
             order_total = 0.0
             order_id = f"ORD{order_id_counter:06d}"
             
             order_details_temp = []
             has_hardware = False
-            hardware_items = []
             
             for _, prod in sampled_prods.iterrows():
                 qty = int(np.random.choice([1, 2, 5, 10], p=[0.75, 0.15, 0.08, 0.02]))
                 price = float(prod["unit_price"])
-                # Enterprise customers get 10% discount sometimes
                 discount = 0.0
                 if cust["customer_segment"] == "Enterprise" and np.random.rand() > 0.6:
                     discount = float(round(price * qty * 0.10, 2))
@@ -306,7 +339,6 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
                 
                 if prod["category"] == "Hardware":
                     has_hardware = True
-                    hardware_items.append(prod["product_id"])
                     
             order_total = round(order_total, 2)
             orders_list.append({
@@ -318,24 +350,19 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
                 "total_amount": order_total,
                 "currency": "USD"
             })
-            
             order_details_list.extend(order_details_temp)
             
-            # ---------------------
-            # Payments Generation
-            # ---------------------
+            # Payments
             pay_method = np.random.choice(["Credit Card", "ACH", "Wire", "PayPal"], p=[0.50, 0.30, 0.15, 0.05])
             pay_status_opts = ["Success", "Success", "Failed"]
-            # Under normal operations: 97% success, 3% failure
             pay_status_p = [0.94, 0.03, 0.03]
             
             pay_status = np.random.choice(pay_status_opts, p=pay_status_p)
             
-            # If the order is cancelled or refunded, payment is refunded
             if order_status == "Refunded":
                 pay_status = "Refunded"
             elif order_status == "Cancelled":
-                pay_status = "Failed" # Payment failed or voided
+                pay_status = "Failed"
                 
             payments_list.append({
                 "payment_id": f"PAY{payment_id_counter:06d}",
@@ -348,32 +375,22 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
             })
             payment_id_counter += 1
             
-            # ---------------------
-            # Shipments Generation
-            # ---------------------
-            # Physical shipments only occur if hardware products are in the order and status is Shipped/Completed/Refunded
+            # Shipments
             if has_hardware and order_status in ["Shipped", "Completed", "Refunded"]:
-                # Select a warehouse based on customer region
                 whs = warehouses_df[warehouses_df["region_id"] == cust_region]
-                if len(whs) > 0:
-                    wh_id = whs.sample(1).iloc[0]["warehouse_id"]
-                else:
-                    wh_id = "WH001"
-                    
-                # Select a supplier
+                wh_id = whs.sample(1).iloc[0]["warehouse_id"] if len(whs) > 0 else "WH001"
+                
                 sup_id = np.random.choice(suppliers_df["supplier_id"])
                 carrier = np.random.choice(["FedEx", "UPS", "DHL", "Freight"], p=[0.40, 0.35, 0.15, 0.10])
                 
                 ship_dt = dt + timedelta(days=np.random.randint(1, 3))
                 est_delivery = ship_dt + timedelta(days=np.random.randint(3, 7))
                 
-                # Normal delivery delay: 1-5 days
+                # Default delay
                 delay_days = np.random.randint(0, 3)
                 
-                # Apply anomalies for Q2 2025:
-                # 1. Supplier Apex Tech (SUP001) has delivery delay of 10-15 days for Hardware
-                # 2. Warehouse West Coast (WH002) has fulfillment delay of 5-7 days
-                if is_q2_2025_issue:
+                # Inject SUPPLY_CHAIN_CRISIS: delay for WH002 & SUP001
+                if is_crisis_active and selected_scenario == "SUPPLY_CHAIN_CRISIS":
                     if sup_id == "SUP001":
                         delay_days += np.random.randint(10, 16)
                     if wh_id == "WH002":
@@ -385,7 +402,7 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
                 if delay_days > 2:
                     deliv_status = "Late"
                 if order_status == "Refunded" and delay_days > 7:
-                    deliv_status = "Returned" # Returned due to late delivery refusal
+                    deliv_status = "Returned"
                     
                 shipments_list.append({
                     "shipment_id": f"SHP{shipment_id_counter:06d}",
@@ -413,12 +430,9 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
     support_data = []
     ticket_id_counter = 1
     
-    # Tickets are generated based on order delays, payment issues, and baseline queries
     categories = ["Billing", "Technical", "Product", "Logistics"]
     priorities = ["Low", "Medium", "High", "Critical"]
-    statuses = ["Resolved", "Resolved", "Resolved", "In Progress", "Escalated"]
     
-    # To simulate realistic link: we select orders that were Late or Refunded or Failed Payments
     late_shipments = shipments_df[shipments_df["delivery_status"] == "Late"]
     failed_payments = payments_df[payments_df["payment_status"] == "Failed"]
     
@@ -428,19 +442,28 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
         cust_id = ord_info["customer_id"]
         create_dt = datetime.combine(ship["estimated_delivery_date"] + timedelta(days=1), datetime.min.time()) + timedelta(hours=np.random.randint(8, 17))
         
-        # If Q2 2025, ticket escalation rate is high, CSAT is low
-        is_q2 = (ship["estimated_delivery_date"] >= datetime(2025, 4, 1).date() and ship["estimated_delivery_date"] <= datetime(2025, 6, 30).date())
+        is_crisis = (ship["estimated_delivery_date"] >= crisis_start)
         
         status = "Resolved"
-        if is_q2 and np.random.rand() > 0.5:
+        # If supply chain crisis, ticket backlog grows: status remains escalated/in progress
+        if is_crisis and selected_scenario == "SUPPLY_CHAIN_CRISIS" and np.random.rand() > 0.5:
             status = np.random.choice(["Escalated", "In Progress"])
             
-        priority = "High" if not is_q2 else "Critical"
-        csat = int(np.random.choice([1, 2, 3], p=[0.60, 0.30, 0.10])) if is_q2 else int(np.random.choice([2, 3, 4], p=[0.20, 0.50, 0.30]))
+        priority = "High" if not is_crisis else "Critical"
         
+        # CSAT drops if supply chain crisis
+        if is_crisis and selected_scenario == "SUPPLY_CHAIN_CRISIS":
+            csat = int(np.random.choice([1, 2, 3], p=[0.65, 0.25, 0.10]))
+        else:
+            csat = int(np.random.choice([2, 3, 4], p=[0.20, 0.50, 0.30]))
+            
         close_dt = None
         if status == "Resolved":
-            close_dt = create_dt + timedelta(days=np.random.randint(1, 4), hours=np.random.randint(1, 12))
+            # If crisis, resolution time increases by 3x
+            res_days = np.random.randint(1, 4)
+            if is_crisis and selected_scenario == "SUPPLY_CHAIN_CRISIS":
+                res_days = int(res_days * 3.5)
+            close_dt = create_dt + timedelta(days=res_days, hours=np.random.randint(1, 12))
             
         agent = employees_df[employees_df["department"] == "Customer Support"].sample(1).iloc[0]["employee_id"]
         
@@ -479,20 +502,34 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
         })
         ticket_id_counter += 1
         
-    # Generate general baseline customer queries (~500 random tickets)
+    # Generate baseline customer queries
     for _ in range(500):
         cust = customers_df.sample(1).iloc[0]
         cust_id = cust["customer_id"]
         create_dt = datetime.combine(start_date + timedelta(days=np.random.randint(0, total_days)), datetime.min.time()) + timedelta(hours=np.random.randint(8, 18))
         
+        is_crisis = (create_dt.date() >= crisis_start)
+        
         cat = np.random.choice(categories, p=[0.20, 0.40, 0.30, 0.10])
         prio = np.random.choice(priorities, p=[0.40, 0.40, 0.15, 0.05])
-        stat = np.random.choice(["Resolved", "In Progress", "Escalated"], p=[0.80, 0.10, 0.10])
         
+        stat = "Resolved"
+        # Inject CUSTOMER_CHURN_SURGE: Ticket backlog increases resolved status drops, CSAT drops
+        if is_crisis and selected_scenario == "CUSTOMER_CHURN_SURGE" and cat in ["Technical", "Product"]:
+            stat = np.random.choice(["Resolved", "In Progress", "Escalated"], p=[0.40, 0.40, 0.20])
+            prio = "High"
+            
         close_dt = None
         if stat == "Resolved":
-            close_dt = create_dt + timedelta(days=np.random.randint(1, 5))
-            csat = int(np.random.choice([1, 2, 3, 4, 5], p=[0.05, 0.10, 0.20, 0.40, 0.25]))
+            res_days = np.random.randint(1, 5)
+            if is_crisis and selected_scenario == "CUSTOMER_CHURN_SURGE" and cat in ["Technical", "Product"]:
+                res_days = int(res_days * 3.0)
+            close_dt = create_dt + timedelta(days=res_days)
+            
+            if is_crisis and selected_scenario == "CUSTOMER_CHURN_SURGE" and cat in ["Technical", "Product"]:
+                csat = int(np.random.choice([1, 2, 3], p=[0.60, 0.30, 0.10]))
+            else:
+                csat = int(np.random.choice([1, 2, 3, 4, 5], p=[0.05, 0.10, 0.20, 0.40, 0.25]))
         else:
             csat = None
             
@@ -522,17 +559,28 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
         day_index = (dt - start_date).days
         growth_mult = 1.0 + (day_index / total_days) * 0.7
         
-        # Q2 2025 anomaly: NPS drop
-        is_q2_2025 = (dt >= datetime(2025, 4, 1).date() and dt <= datetime(2025, 6, 30).date())
+        is_crisis_active = (dt >= crisis_start)
         
         base_visitors = int(np.random.poisson(2500 * growth_mult))
+        
+        # Inject MARKETING_INEFFICIENCY: Spikes website visitors but does not generate orders
+        if is_crisis_active and selected_scenario == "MARKETING_INEFFICIENCY":
+            base_visitors = int(base_visitors * 1.8)
+            
         base_leads = int(base_visitors * np.random.uniform(0.04, 0.06))
         active_u = int(base_visitors * np.random.uniform(0.35, 0.45))
         cac = float(np.random.uniform(150.00, 220.00))
         
-        # NPS drops during the Q2 2025 crisis
-        if is_q2_2025:
-            nps = int(np.random.randint(10, 25))
+        # Inject MARKETING_INEFFICIENCY: CAC spikes due to low conversions
+        if is_crisis_active and selected_scenario == "MARKETING_INEFFICIENCY":
+            cac = float(cac * 2.5)
+            
+        # NPS drops during crises:
+        if is_crisis_active:
+            if selected_scenario in ["SUPPLY_CHAIN_CRISIS", "CUSTOMER_CHURN_SURGE"]:
+                nps = int(np.random.randint(5, 20))
+            else:
+                nps = int(np.random.randint(30, 45))
         else:
             nps = int(np.random.randint(45, 65))
             
@@ -546,6 +594,9 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
         })
         
     daily_business_metrics_df = pd.DataFrame(daily_metrics_list)
+    
+    # Record metadata
+    scenario_df = pd.DataFrame([{"scenario_key": selected_scenario}])
     
     return {
         "regions": regions_df,
@@ -561,7 +612,8 @@ def generate_synthetic_data(start_date_str="2023-07-01", end_date_str="2026-06-3
         "payments": payments_df,
         "shipments": shipments_df,
         "customer_support": customer_support_df,
-        "daily_business_metrics": daily_business_metrics_df
+        "daily_business_metrics": daily_business_metrics_df,
+        "scenario_metadata": scenario_df
     }
 
 if __name__ == "__main__":

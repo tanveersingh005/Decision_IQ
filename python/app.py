@@ -61,10 +61,44 @@ if not db_initialized:
 # Helper for Database Engine
 engine = get_engine()
 
+# Fetch active insights to identify the active scenario and prioritize page index
+try:
+    insights = InsightEngine.generate_executive_insights()
+except Exception as e:
+    insights = []
+    
+active_scenario = "UNKNOWN_SCENARIO"
+simulated_scenario = "Unknown"
+if insights:
+    first_ins = insights[0]
+    simulated_scenario = first_ins.get("simulated_scenario", "Unknown")
+    ins_id = first_ins.get("id", "")
+    
+    if ins_id == "INS_SUPPLY_CHAIN":
+        active_scenario = "SUPPLY_CHAIN_CRISIS"
+    elif ins_id == "INS_MARKETING":
+        active_scenario = "MARKETING_INEFFICIENCY"
+    elif ins_id == "INS_CHURN":
+        active_scenario = "CUSTOMER_CHURN_SURGE"
+    elif ins_id == "INS_OVERSTOCK":
+        active_scenario = "INVENTORY_OVERSTOCK"
+
+# Initialize default page in session state based on active scenario on first load
+if "navigation_page" not in st.session_state:
+    default_page = "CEO Control Tower"
+    if active_scenario in ["SUPPLY_CHAIN_CRISIS", "INVENTORY_OVERSTOCK"]:
+        default_page = "Operations & Supply Chain"
+    elif active_scenario == "CUSTOMER_CHURN_SURGE":
+        default_page = "Customer Success & Cohorts"
+    elif active_scenario == "MARKETING_INEFFICIENCY":
+        default_page = "Marketing & Support"
+    st.session_state["navigation_page"] = default_page
+
 # Sidebar Navigation
 page = st.sidebar.radio(
     "NAVIGATION",
     ["CEO Control Tower", "Finance Intelligence", "Operations & Supply Chain", "Customer Success & Cohorts", "Marketing & Support"],
+    key="navigation_page",
     label_visibility="collapsed"
 )
 
@@ -73,6 +107,16 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("<p style='color:#7B8794; font-size: 11px; font-weight: 600; text-transform: uppercase;'>Global Filters</p>", unsafe_allow_html=True)
 region_filter = st.sidebar.selectbox("Region", ["All Regions", "North America", "Europe", "Asia-Pacific"])
 segment_filter = st.sidebar.selectbox("Customer Segment", ["All Segments", "SMB", "Enterprise", "Strategic"])
+
+# Verification Monitor Badge
+if simulated_scenario != "Unknown":
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("<p style='color:#7B8794; font-size: 11px; font-weight: 600; text-transform: uppercase;'>Verification Monitor</p>", unsafe_allow_html=True)
+    st.sidebar.markdown(f"<div style='background-color:#1B2A4A; padding:10px; border-radius:5px; border: 1px solid #C5A059;'>"
+                        f"<p style='color:#C5A059; font-size:10px; font-weight:bold; margin:0; text-transform:uppercase;'>System Diagnostics</p>"
+                        f"<p style='color:#F4F5F7; font-size:11px; margin:5px 0 0 0;'><b>Simulated:</b> {simulated_scenario.replace('_', ' ')}</p>"
+                        f"<p style='color:#F4F5F7; font-size:11px; margin:2px 0 0 0;'><b>Detected:</b> {active_scenario.replace('_', ' ')}</p>"
+                        f"</div>", unsafe_allow_html=True)
 
 # KPI Delta helper
 def render_kpi(title, value, delta=None, delta_type="positive"):
