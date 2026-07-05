@@ -2,18 +2,18 @@ DECISIONIQ MACHINE LEARNING MODELS REPORT
 =========================================
 
 1. CUSTOMER CHURN MODEL (Random Forest)
-   - ROC-AUC: 0.5655
+   - ROC-AUC: 0.5045
    - Precision: 1.0000
-   - Recall: 0.5000
-   - F1-Score: 0.6667
+   - Recall: 0.2000
+   - F1-Score: 0.3333
 
 2. WEEKLY REVENUE FORECASTER (Ridge Autoregression)
-   - Mean Absolute Error (MAE): $229,408.01
-   - Mean Absolute Percentage Error (MAPE): 102.56%
-   - R-squared (R2) Score: -0.2340
+   - Mean Absolute Error (MAE): $97,984.86
+   - Mean Absolute Percentage Error (MAPE): 65.71%
+   - R-squared (R2) Score: -0.7569
 
 3. SUPPLIER DELAY RISK MODEL (Random Forest)
-   - ROC-AUC: 0.5055
+   - ROC-AUC: 0.7015
    - Precision: 0.0000
    - Recall: 0.0000
    - F1-Score: 0.0000

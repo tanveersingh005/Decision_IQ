@@ -618,7 +618,7 @@ class ExecutiveInsightBuilder:
     """
     
     @staticmethod
-    def build_insights(kpis: Dict[str, Any], anomalies: List[Anomaly]) -> List[ExecutiveInsight]:
+    def build_insights(kpis: Dict[str, Any], anomalies: List[Anomaly], active_scenario: str = None) -> List[ExecutiveInsight]:
         insights = []
         if not anomalies:
             # Return baseline healthy state insight
@@ -635,8 +635,9 @@ class ExecutiveInsightBuilder:
             ))
             return insights
             
-        # Classify the main active scenario
-        active_scenario = ScenarioEngine.classify_scenario(anomalies)
+        # Classify the main active scenario if not explicitly passed
+        if not active_scenario or active_scenario == "UNKNOWN_SCENARIO":
+            active_scenario = ScenarioEngine.classify_scenario(anomalies)
         leakage = FinancialImpactEngine.calculate_leakage(active_scenario, anomalies)
         recs = RecommendationEngine.generate_recommendations(active_scenario, anomalies, kpis)
         
@@ -993,8 +994,18 @@ class InsightEngine:
         # 2. Detect Anomalies
         anomalies = AnomalyDetector.detect_anomalies(kpis)
         
+        # Query active scenario from DB
+        active_scenario = "UNKNOWN_SCENARIO"
+        try:
+            query = "SELECT scenario_type FROM scenario_metadata WHERE active_status = 'Active' ORDER BY generated_timestamp DESC LIMIT 1"
+            df_sc = pd.read_sql(query, con=engine)
+            if not df_sc.empty:
+                active_scenario = df_sc.iloc[0]["scenario_type"]
+        except Exception:
+            pass
+            
         # 3. Build Executive Insights
-        insights_objs = ExecutiveInsightBuilder.build_insights(kpis, anomalies)
+        insights_objs = ExecutiveInsightBuilder.build_insights(kpis, anomalies, active_scenario)
         
         # Convert to dictionary format for dashboard compatibility
         insights_dict_list = []

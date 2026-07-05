@@ -100,6 +100,9 @@ class ScenarioManager:
                 except Exception as drop_err:
                     logger.error(f"Failed to drop outdated scenario_metadata table: {drop_err}")
                     
+        # Override scenario in environment variable for the generator
+        os.environ["SIMULATION_SCENARIO"] = scenario_key
+        
         logger.info(f"Generating new scenario {scenario_id}: {name} ({scenario_key})...")
         
         # Trigger ETL pipeline (which runs init_db to reset tables but preserves scenario_metadata)
